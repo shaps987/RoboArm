@@ -78,7 +78,7 @@ Here are the product links with their prices (prices may change):
 | [Adafruit ADS7830 Analog to Digital Converter](https://www.adafruit.com/product/5836)                                  | $5.95      |
 | [Joysticks (6-pack)](https://www.amazon.com/gp/product/B0DH2G1PVP/ref=ewc_pr_img_6?smid=A3EW69KEBHQF24&psc=1)           | $5.99      |
 
-#### **Total Price: ~$227**
+#### **Total Price: ~$230**
 
 ### 2. **Assemble the Remote Control**
 
