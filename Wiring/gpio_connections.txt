@@ -1,0 +1,24 @@
+Motor Driver 1:
+  - ENA: Pin 32, GPIO12
+  - IN1: Pin 29, GPIO5
+  - IN2: Pin 31, GPIO6
+  - ENB: Pin 33, GPIO13
+  - IN3: Pin 35, GPIO19
+  - IN4: Pin 37, GPIO26
+
+Motor Driver 2:
+  - ENA: Pin 12, GPIO18
+  - IN1: Pin 16, GPIO23
+  - IN2: Pin 18, GPIO24
+  - ENB: Pin 22, GPIO25
+  - IN3: Pin 13, GPIO27
+  - IN4: Pin 15, GPIO22
+
+PCA9685:
+  - SDA: Pin 3, GPIO2
+  - SCL: Pin 5, GPIO3
+
+LED Momentary Push Button:
+  - NO (Normally Open): Pin 7, GPIO4
+  - GND: 5V Power Distribution Block
+  - + (LED Positive): 5V Power Distribution Block
