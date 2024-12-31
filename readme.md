@@ -41,7 +41,7 @@ The **robotic arm** itself is powered by a Raspberry Pi Zero WH, which coordinat
 - Powered by a 6V 4 AA battery pack stepped down to 5V with a buck converter.
 
 ### Robotic Arm
-- **1 12V Battery**:
+- **12V Battery**:
   - The positive terminal is connected to a **10A slow-blow fuse**, chosen because the combined input current for the buck converters is ~7A, allowing for surges.
   - Powers two buck converters:
     - **Buck Converter #1 (5V)**:
