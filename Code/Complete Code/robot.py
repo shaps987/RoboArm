@@ -212,6 +212,18 @@ async def find_remote():
     print("Remote not found.")
     return None
 
+# --- Notification Handler ---
+def notification_handler(sender, data):
+    """
+    Handle incoming BLE notifications.
+    
+    Parameters:
+        sender: The source of the notification.
+        data: The data received in the notification.
+    """
+    print(f"Notification received from {sender}: {data}")
+    move_robot(data)  # Pass the data to the move_robot function
+
 # --- BLE Connection Task ---
 async def connect_to_remote():
     global connected, alive
@@ -229,6 +241,7 @@ async def connect_to_remote():
                 connected = True
                 alive = True
                 print(f"Connected to remote: {device.name}")
+                
                 await client.start_notify(COMMAND_UUID, notification_handler)
                 print("Subscribed to notifications.")
                 while connected:
