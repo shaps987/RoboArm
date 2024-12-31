@@ -68,7 +68,7 @@ Here are the product links with their prices (prices may change):
 | [Power Distribution Board](https://www.amazon.com/Tnisesm-Position-Distribution-Inputs-Outputs/dp/B0BWN19R6R)          | $8.99      |
 | [Micro USB to Pigtail Cable](https://www.amazon.com/gp/product/B0BZ8XWL18/ref=ewc_pr_img_4?smid=A1PP7IW2YCJN73&psc=1)   | $9.59      |
 | [Raspberry Pi Zero WH](https://www.amazon.com/Raspberry-Bluetooth-Compatible-Connector-headers/dp/B0CG99MR5W)          | $21.98     |
-| [Momentary Push Button Switch with LED (5-pack)](https://www.amazon.com/DMWD-Waterproof-Anti-Vandal-Momentary-Self-Reset/dp/B0DJKRNFQC/) | $16.99   |
+| [Momentary Push Button Switch with LED (5-pack)](https://www.amazon.com/Momentary-Indicator-Pushbutton-Waterproof-Stainless/dp/B08L13JG8M/) | $13.98   |
 | [L298N Motor Drivers (4-pack)](https://www.amazon.com/gp/product/B0CR6MLY7F/ref=ewc_pr_img_7?smid=A1YZW40LYQY3L1&psc=1) | $9.99      |
 | [Mecanum Wheels and Motors (4-pack)](https://www.amazon.com/gp/product/B0CBJJM1KQ/ref=ewc_pr_img_3?smid=A2S878EGP30YQG&th=1) | $15.60  |
 | [PCA9685 Servo Driver (2-pack)](https://www.amazon.com/gp/product/B07BRS249H/ref=ewc_pr_img_8?smid=A30QSGOJR8LMXA&psc=1) | $13.99  |
@@ -78,7 +78,7 @@ Here are the product links with their prices (prices may change):
 | [Adafruit ADS7830 Analog to Digital Converter](https://www.adafruit.com/product/5836)                                  | $5.95      |
 | [Joysticks (6-pack)](https://www.amazon.com/gp/product/B0DH2G1PVP/ref=ewc_pr_img_6?smid=A3EW69KEBHQF24&psc=1)           | $5.99      |
 
-#### **Total Price: $228.68**
+#### **Total Price: ~$227**
 
 ### 2. **Assemble the Remote Control**
 
