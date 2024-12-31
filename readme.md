@@ -97,7 +97,6 @@ Here are the product links with their prices (prices may change):
        - Use a **5A slow-blow fuse** after the buck converter.
      - **Buck Converter #2 (7V)**:
        - Split the positive output into two separate wires, each passing through a **5A circuit breaker** before connecting to the VIN inputs of each L298N motor driver.
-       - Connect all grounds (battery, buck converters, Raspberry Pi Zero, PCA9685, and L298Ns) to a common ground point.
    - Use **14 AWG wires** for connections between the battery and the buck converters and from the buck converters along the ~10 feet (one-way) long powerline to the moving robot.
    - Use **18 AWG wires** for connections from the power distribution board to the components inside the robot.
 
