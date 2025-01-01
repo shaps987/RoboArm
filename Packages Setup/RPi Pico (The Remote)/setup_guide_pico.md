@@ -24,7 +24,7 @@ Steps
     -   Click the green "Code" button and select **Download ZIP**.
 3.  Extract the ZIP file to access the library source files.
 
-Or just drag to lib folder included in this github repository into your Pico via an IDE like Thonny.
+Or just drag the lib folder with the neccessary package included in this github repository into your Pico via an IDE like Thonny. From there, you can import usumbus as normal.
 
 * * * * *
 
