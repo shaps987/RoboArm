@@ -24,6 +24,8 @@ Steps
     -   Click the green "Code" button and select **Download ZIP**.
 3.  Extract the ZIP file to access the library source files.
 
+Or just drag to lib folder included in this github repository into your Pico via an IDE like Thonny.
+
 * * * * *
 
 ### 2\. Copy the Library Files to the Pico
