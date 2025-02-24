@@ -1,4 +1,4 @@
-# Robotic Arm Project
+# RoboArm Project
 
 ## Overview
 This project involves building a versatile and remotely controlled robotic arm, leveraging the power and flexibility of Raspberry Pi microcontrollers. The robotic arm is designed for precise movement and versatility, controlled remotely via a custom-built controller featuring multiple joysticks. The remote communicates with the robotic arm over Bluetooth Low Energy (BLE) for real-time command execution.
