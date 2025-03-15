@@ -77,8 +77,9 @@ Here are the product links with their prices (prices may change):
 | [Adafruit Raspberry Pi Pico WH](https://www.adafruit.com/product/5544)                                                 | $7.00      |
 | [Adafruit ADS7830 Analog to Digital Converter](https://www.adafruit.com/product/5836)                                  | $5.95      |
 | [Joysticks (6-pack)](https://www.amazon.com/gp/product/B0DH2G1PVP/ref=ewc_pr_img_6?smid=A3EW69KEBHQF24&psc=1)           | $5.99      |
+| [XT30 Connectors (8 pairs)](https://www.amazon.com/Pairs-Female-Connector-Silicone-Battery/dp/B07C5KJX24/)           | $12.99      |
 
-#### **Total Price: ~$230**
+#### **Total Price: ~$243**
 
 ### 2. **Assemble the Remote Control**
 
