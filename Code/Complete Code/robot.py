@@ -30,6 +30,10 @@ pca.frequency = 50  # Servo Frequency (50 Hz)
 connected = False
 alive = False
 
+# --- Safe() Function to Help Eliminate Unicode Errors --- #
+def safe(s):
+    return "".join(c if 0x20 <= ord(c) <= 0x7E else "?" for c in (s or ""))
+
 # --- Define Servo Channels and Set Pulse Ranges --- 
 joint1 = pca.channels[0]  # Servo on channel 0
 joint2 = pca.channels[1]  # Servo on channel 1
@@ -199,7 +203,7 @@ def compute_servo_angles(l1, l2, l3, x, y):
 # --- BLE Constants ---
 REMOTE_NAME = "RoboticArmRemote"
 REMOTE_UUID = "1848"
-COMMAND_UUID = "2A6E"
+COMMAND_UUID = "00002a6e-0000-1000-8000-00805f9b34fb"
 
 # --- BLE Remote Finder ---
 async def find_remote():
@@ -207,22 +211,15 @@ async def find_remote():
     devices = await BleakScanner.discover()
     for device in devices:
         if device.name == REMOTE_NAME:
-            print(f"Found remote: {device}")
             return device
-    print("Remote not found.")
     return None
 
 # --- Notification Handler ---
 def notification_handler(sender, data):
-    """
-    Handle incoming BLE notifications.
-    
-    Parameters:
-        sender: The source of the notification.
-        data: The data received in the notification.
-    """
-    print(f"Notification received from {sender}: {data}")
-    move_robot(data)  # Pass the data to the move_robot function
+    print(f"[DEBUG] raw notification → type={type(data)}, len={len(data)}, data={data!r}")
+    # now convert to a proper bytes object if needed:
+    cmd = bytes(data) if not isinstance(data, bytes) else data
+    move_robot(cmd)
 
 # --- BLE Connection Task ---
 async def connect_to_remote():
@@ -237,7 +234,7 @@ async def connect_to_remote():
             continue
         try:
             print(f"Connecting to {device}...")
-            async with BleakClient(device) as client:
+            async with BleakClient(device.address) as client:
                 connected = True
                 alive = True
                 print(f"Connected to remote: {device.name}")
@@ -288,127 +285,121 @@ front_left.start(75)
 # --- Robot Movement Function ---
 def move_robot(command):
     """ Execute robot movement based on the received command """
-    print(f"Processing command: {command}")
-    if command == b'f':  # Forward
-        GPIO.output(in1_rear, GPIO.HIGH)
-        GPIO.output(in2_rear, GPIO.LOW)
-        GPIO.output(in4_rear, GPIO.HIGH)
-        GPIO.output(in3_rear, GPIO.LOW)
+    try:
+        print(f"Processing command: {command}")
+        if command == b'f':  # Forward
+            GPIO.output(in1_rear, GPIO.HIGH)
+            GPIO.output(in2_rear, GPIO.LOW)
+            GPIO.output(in4_rear, GPIO.HIGH)
+            GPIO.output(in3_rear, GPIO.LOW)
 
-        GPIO.output(in1_front, GPIO.HIGH)
-        GPIO.output(in2_front, GPIO.LOW)
-        GPIO.output(in4_front, GPIO.HIGH)
-        GPIO.output(in3_front, GPIO.LOW)
+            GPIO.output(in1_front, GPIO.HIGH)
+            GPIO.output(in2_front, GPIO.LOW)
+            GPIO.output(in4_front, GPIO.HIGH)
+            GPIO.output(in3_front, GPIO.LOW)
 
-    elif command == b'b':  # Backward
-        GPIO.output(in1_rear, GPIO.LOW)
-        GPIO.output(in2_rear, GPIO.HIGH)
-        GPIO.output(in4_rear, GPIO.LOW)
-        GPIO.output(in3_rear, GPIO.HIGH)
+        elif command == b'b':  # Backward
+            GPIO.output(in1_rear, GPIO.LOW)
+            GPIO.output(in2_rear, GPIO.HIGH)
+            GPIO.output(in4_rear, GPIO.LOW)
+            GPIO.output(in3_rear, GPIO.HIGH)
 
-        GPIO.output(in1_front, GPIO.LOW)
-        GPIO.output(in2_front, GPIO.HIGH)
-        GPIO.output(in4_front, GPIO.LOW)
-        GPIO.output(in3_front, GPIO.HIGH)
+            GPIO.output(in1_front, GPIO.LOW)
+            GPIO.output(in2_front, GPIO.HIGH)
+            GPIO.output(in4_front, GPIO.LOW)
+            GPIO.output(in3_front, GPIO.HIGH)
 
-    elif command == b'r':  # Strafe Right
-        GPIO.output(in1_rear, GPIO.HIGH)
-        GPIO.output(in2_rear, GPIO.LOW)
-        GPIO.output(in4_rear, GPIO.LOW)
-        GPIO.output(in3_rear, GPIO.HIGH)
+        elif command == b'r':  # Strafe Right
+            GPIO.output(in1_rear, GPIO.HIGH)
+            GPIO.output(in2_rear, GPIO.LOW)
+            GPIO.output(in4_rear, GPIO.LOW)
+            GPIO.output(in3_rear, GPIO.HIGH)
 
-        GPIO.output(in1_front, GPIO.LOW)
-        GPIO.output(in2_front, GPIO.HIGH)
-        GPIO.output(in4_front, GPIO.HIGH)
-        GPIO.output(in3_front, GPIO.LOW)
+            GPIO.output(in1_front, GPIO.LOW)
+            GPIO.output(in2_front, GPIO.HIGH)
+            GPIO.output(in4_front, GPIO.HIGH)
+            GPIO.output(in3_front, GPIO.LOW)
 
-    elif command == b'l':  # Strafe Left
-        GPIO.output(in1_rear, GPIO.LOW)
-        GPIO.output(in2_rear, GPIO.HIGH)
-        GPIO.output(in4_rear, GPIO.HIGH)
-        GPIO.output(in3_rear, GPIO.LOW)
+        elif command == b'l':  # Strafe Left
+            GPIO.output(in1_rear, GPIO.LOW)
+            GPIO.output(in2_rear, GPIO.HIGH)
+            GPIO.output(in4_rear, GPIO.HIGH)
+            GPIO.output(in3_rear, GPIO.LOW)
 
-        GPIO.output(in1_front, GPIO.HIGH)
-        GPIO.output(in2_front, GPIO.LOW)
-        GPIO.output(in4_front, GPIO.LOW)
-        GPIO.output(in3_front, GPIO.HIGH)
+            GPIO.output(in1_front, GPIO.HIGH)
+            GPIO.output(in2_front, GPIO.LOW)
+            GPIO.output(in4_front, GPIO.LOW)
+            GPIO.output(in3_front, GPIO.HIGH)
 
-    elif command == b'q':  # Turn Right
-        GPIO.output(in1_rear, GPIO.LOW)
-        GPIO.output(in2_rear, GPIO.HIGH)
-        GPIO.output(in4_rear, GPIO.HIGH)
-        GPIO.output(in3_rear, GPIO.LOW)
+        elif command == b'q':  # Turn Right
+            GPIO.output(in1_rear, GPIO.LOW)
+            GPIO.output(in2_rear, GPIO.HIGH)
+            GPIO.output(in4_rear, GPIO.HIGH)
+            GPIO.output(in3_rear, GPIO.LOW)
 
-        GPIO.output(in1_front, GPIO.LOW)
-        GPIO.output(in2_front, GPIO.HIGH)
-        GPIO.output(in4_front, GPIO.HIGH)
-        GPIO.output(in3_front, GPIO.LOW)
+            GPIO.output(in1_front, GPIO.LOW)
+            GPIO.output(in2_front, GPIO.HIGH)
+            GPIO.output(in4_front, GPIO.HIGH)
+            GPIO.output(in3_front, GPIO.LOW)
 
-    elif command == b'p':  # Turn Left
-        GPIO.output(in1_rear, GPIO.HIGH)
-        GPIO.output(in2_rear, GPIO.LOW)
-        GPIO.output(in4_rear, GPIO.LOW)
-        GPIO.output(in3_rear, GPIO.HIGH)
+        elif command == b'p':  # Turn Left
+            GPIO.output(in1_rear, GPIO.HIGH)
+            GPIO.output(in2_rear, GPIO.LOW)
+            GPIO.output(in4_rear, GPIO.LOW)
+            GPIO.output(in3_rear, GPIO.HIGH)
 
-        GPIO.output(in1_front, GPIO.HIGH)
-        GPIO.output(in2_front, GPIO.LOW)
-        GPIO.output(in4_front, GPIO.LOW)
-        GPIO.output(in3_front, GPIO.HIGH)
+            GPIO.output(in1_front, GPIO.HIGH)
+            GPIO.output(in2_front, GPIO.LOW)
+            GPIO.output(in4_front, GPIO.LOW)
+            GPIO.output(in3_front, GPIO.HIGH)
 
-    elif command == b'a':  # Arm Forward
-        claw_pos = calculate_claw_position(L1, L2, L3)
-        angles = compute_servo_angles(L1, L2, L3, claw_pos[0] + 1, claw_pos[1])
-        if angles is not None:
-            move_servo(0, angles[0])
-            move_servo(1, angles[1])
-            move_servo(2, angles[2])
+        elif command == b'a':  # Arm Forward
+            claw_pos = calculate_claw_position(L1, L2, L3)
+            angles = compute_servo_angles(L1, L2, L3, claw_pos[0] + 1, claw_pos[1])
+            if angles is not None:
+                move_servo(0, angles[0])
+                move_servo(1, angles[1])
+                move_servo(2, angles[2])
 
-    elif command == b'c':  # Arm Backward
-        claw_pos = calculate_claw_position(L1, L2, L3)
-        angles = compute_servo_angles(L1, L2, L3, claw_pos[0] - 1, claw_pos[1])
-        if angles is not None:
-            move_servo(0, angles[0])
-            move_servo(1, angles[1])
-            move_servo(2, angles[2])
+        elif command == b'c':  # Arm Backward
+            claw_pos = calculate_claw_position(L1, L2, L3)
+            angles = compute_servo_angles(L1, L2, L3, claw_pos[0] - 1, claw_pos[1])
+            if angles is not None:
+                move_servo(0, angles[0])
+                move_servo(1, angles[1])
+                move_servo(2, angles[2])
 
-    elif command == b'y':  # Claw Open
-        move_servo(3, 45)  # Adjust angle as needed
+        elif command == b'y':  # Claw Open
+            move_servo(3, 45)  # Adjust angle as needed
 
-    elif command == b'z':  # Claw Closed
-        move_servo(3, 0)  # Adjust angle as needed
+        elif command == b'z':  # Claw Closed
+            move_servo(3, 0)  # Adjust angle as needed
 
-    elif command == b'd':  # Arm Up
-        claw_pos = calculate_claw_position(L1, L2, L3)
-        angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] + 1)
-        if angles is not None:
-            move_servo(0, angles[0])
-            move_servo(1, angles[1])
-            move_servo(2, angles[2])
+        elif command == b'd':  # Arm Up
+            claw_pos = calculate_claw_position(L1, L2, L3)
+            angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] + 1)
+            if angles is not None:
+                move_servo(0, angles[0])
+                move_servo(1, angles[1])
+                move_servo(2, angles[2])
 
-    elif command == b'e':  # Arm Down
-        claw_pos = calculate_claw_position(L1, L2, L3)
-        angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] - 1)
-        if angles is not None:
-            move_servo(0, angles[0])
-            move_servo(1, angles[1])
-            move_servo(2, angles[2])
+        elif command == b'e':  # Arm Down
+            claw_pos = calculate_claw_position(L1, L2, L3)
+            angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] - 1)
+            if angles is not None:
+                move_servo(0, angles[0])
+                move_servo(1, angles[1])
+                move_servo(2, angles[2])
 
-    else:
-        print(f"Unknown command: {command}")
+        else:
+            print(f"Unknown command: {command}")
+    except Exception as e:
+        print(f" move_robot error: {e}")
 
 
 # --- LED Blink Task ---
 async def blink_task():
     pass
-    # global alive
-    # print("Blink task started.")
-    # toggle = True
-    # while alive:
-    #     blink_duration = 250 if not connected else 1000
-    #     led.value(toggle)
-    #     toggle = not toggle
-    #     await asyncio.sleep_ms(blink_duration)
-    # print("Blink task stopped.")
 
 # --- Main Task ---
 async def main():
@@ -419,4 +410,5 @@ async def main():
     await asyncio.gather(*tasks)
 
 # --- Script Entry Point ---
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

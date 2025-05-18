@@ -1,165 +1,193 @@
-# --- Import Required Libraries ---
-from usmbus import SMBus
-import aioble
-import bluetooth
-import machine
-import uasyncio as asyncio
-from micropython import const
+import board
+import digitalio
+import busio
+import microcontroller
+import asyncio
 
-# --- SMBus and Device Constants ---
-bus = SMBus(0)  # Use 0 for the I2C bus on Pico
-ads7830_commands = (0x84, 0xc4, 0x94, 0xd4, 0xa4, 0xe4, 0xb4, 0xf4)
+# --- BLE Imports from Adafruit Libraries ---
+from adafruit_ble import BLERadio, Service
+from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
+from adafruit_ble.characteristics import Characteristic
+from adafruit_ble.uuid import StandardUUID
+from adafruit_ble.services.standard.device_info import DeviceInfoService
 
-# --- Analog-to-Digital Conversion Function ---
-def read_ads7830(input):
-    """ Read ADC input using ADS7830 """
-    bus.write_byte(0x4b, ads7830_commands[input])  # Replace with your I2C address
-    return bus.read_byte(0x4b)
+# I²C address discovered by scan
+ADS7830_ADDR = 0x48
 
-# --- Device Unique ID ---
+# --- I2C Setup for ADS7830 ---
+i2c = busio.I2C(board.SCL, board.SDA)
+ads7830_commands = (0x84, 0xC4, 0x94, 0xD4, 0xA4, 0xE4, 0xB4, 0xF4)
+
+def read_ads7830(channel):
+    """Read one byte from the given ADS7830 channel over I2C."""
+    while not i2c.try_lock():
+        pass
+    try:
+        i2c.writeto(ADS7830_ADDR, bytes([ads7830_commands[channel]]))
+        buf = bytearray(1)
+        i2c.readfrom_into(ADS7830_ADDR, buf)
+        return buf[0]
+    except Exception as e:
+        print("I2C error:", e)
+        return 0
+    finally:
+        i2c.unlock()
+
 def uid():
-    """ Return the unique id of the device as a string """
-    return "{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}".format(*machine.unique_id())
+    """Return the unique id of the device as a string."""
+    return "".join("{:02x}".format(x) for x in microcontroller.cpu.uid)
 
 # --- BLE Constants ---
-_GENERIC = bluetooth.UUID(0x1848)
-_BUTTON_UUID = bluetooth.UUID(0x2A6E)
-_DEVICE_INFO_UUID = bluetooth.UUID(0x180A)
-_BLE_APPEARANCE_GENERIC_REMOTE_CONTROL = const(384)
+_BLE_APPEARANCE_GENERIC_REMOTE_CONTROL = 384
 
-# --- Hardware Setup ---
-led = machine.Pin("LED", machine.Pin.OUT)
+# --- Define a Custom BLE Service ---
+class RemoteService(Service):
+    # 16-bit service UUID is fine here
+    uuid = StandardUUID(0x1848)
 
-# --- BLE Service and Characteristics ---
-device_info = aioble.Service(_DEVICE_INFO_UUID)
-aioble.Characteristic(device_info, bluetooth.UUID(const(0x02A29)), read=True, initial="RoboticArmRemote")
-aioble.Characteristic(device_info, bluetooth.UUID(const(0x2A24)), read=True, initial="1.0")
-aioble.Characteristic(device_info, bluetooth.UUID(const(0x2A25)), read=True, initial=uid())
-aioble.Characteristic(device_info, bluetooth.UUID(const(0x2A26)), read=True, initial="1.0")
-aioble.Characteristic(device_info, bluetooth.UUID(const(0x2A28)), read=True, initial="1.0")
+    # use StandardUUID for the char, and override to 1 byte
+    button = Characteristic(
+        uuid=StandardUUID(0x2A6E),                     # spec-assigned 16-bit
+        properties=Characteristic.READ | Characteristic.NOTIFY,
+        max_length=1                                    # allow exactly one byte
+    )
 
-remote_service = aioble.Service(_GENERIC)
-button_characteristic = aioble.Characteristic(remote_service, _BUTTON_UUID, read=True, notify=True)
+remote_service = RemoteService()
+device_info = DeviceInfoService(
+    manufacturer="RoboticArmRemote",
+    model_number="1.0",
+    serial_number=uid(),
+    hardware_revision="1.0",
+    firmware_revision="1.0",
+)
 
-# --- BLE Service Registration ---
-print("Registering services")
-aioble.register_services(remote_service, device_info)
+# --- Hardware LED Setup ---
+led = digitalio.DigitalInOut(board.LED)
+led.direction = digitalio.Direction.OUTPUT
 
-# --- Connection State ---
+# Global BLE state
+ble = BLERadio()
 connected = False
-connection = None
+
+# --- BLE Peripheral Task ---
+async def peripheral_task():
+    global connected
+    advertisement = ProvideServicesAdvertisement(remote_service, device_info)
+    advertisement.appearance = _BLE_APPEARANCE_GENERIC_REMOTE_CONTROL
+    advertisement.complete_name = "RoboticArmRemote"
+    ble.start_advertising(advertisement)
+    while True:
+        if ble.connected:
+            conn = ble.connections[0]
+            connected = True
+            print("Connected to:", conn)
+            while ble.connected:
+                await asyncio.sleep(0.1)
+            connected = False
+            print("Disconnected")
+            ble.start_advertising(advertisement)
+        await asyncio.sleep(0.1)
+
+# Dead-zone thresholds
+CENTER   = 128
+DEADZONE = 20
+UPPER    = CENTER + DEADZONE
+LOWER    = CENTER - DEADZONE
+_last_button = None
 
 # --- Remote Task ---
 async def remote_task():
-    """ Handle remote control commands """
+    global connected, _last_button
     while True:
         if not connected:
             print("Not Connected")
             await asyncio.sleep(1)
             continue
-        try:
-            if read_ads7830(6) > 140:
-                print(f"Joystick 1 is set to Chassis Forward, connection is: {connection}")
-                button_characteristic.write(b"f")
-                button_characteristic.notify(connection, b"f")
-            elif read_ads7830(6) < 110:
-                print(f"Joystick 1 is set to Chassis Backward, connection is: {connection}")
-                button_characteristic.write(b"b")
-                button_characteristic.notify(connection, b"b")
-            elif read_ads7830(7) > 140:
-                print(f"Joystick 1 is set to Chassis Strafe Right, connection is: {connection}")
-                button_characteristic.write(b"r")
-                button_characteristic.notify(connection, b"r")
-            elif read_ads7830(7) < 110:
-                print(f"Joystick 1 is set to Chassis Strafe Left, connection is: {connection}")
-                button_characteristic.write(b"l")
-                button_characteristic.notify(connection, b"l")
-            elif read_ads7830(5) > 140:
-                print(f"Joystick 2 is set to Chassis Turning Right, connection is: {connection}")
-                button_characteristic.write(b"q")
-                button_characteristic.notify(connection, b"q")
-            elif read_ads7830(5) < 110:
-                print(f"Joystick 2 is set to Chassis Turning Left, connection is: {connection}")
-                button_characteristic.write(b"p")
-                button_characteristic.notify(connection, b"p")
-            elif read_ads7830(2) > 140:
-                print(f"Joystick 3 is set to Arm Forward, connection is: {connection}")
-                button_characteristic.write(b"a")
-                button_characteristic.notify(connection, b"a")
-            elif read_ads7830(2) < 110:
-                print(f"Joystick 3 is set to Arm Backward, connection is: {connection}")
-                button_characteristic.write(b"c")
-                button_characteristic.notify(connection, b"c")
-            elif read_ads7830(3) > 140:
-                print(f"Joystick 3 is set to Claw Open, connection is: {connection}")
-                button_characteristic.write(b"y")
-                button_characteristic.notify(connection, b"y")
-            elif read_ads7830(3) < 140 and read_ads7830(3) > 110:
-                print(f"Joystick 3 is set to Claw Closed, connection is: {connection}")
-                button_characteristic.write(b"z")
-                button_characteristic.notify(connection, b"z")
-            elif read_ads7830(0) > 140:
-                print(f"Joystick 4 is set to Arm Up, connection is: {connection}")
-                button_characteristic.write(b"d")
-                button_characteristic.notify(connection, b"d")
-            elif read_ads7830(0) < 110:
-                print(f"Joystick 4 is set to Arm Down, connection is: {connection}")
-                button_characteristic.write(b"e")
-                button_characteristic.notify(connection, b"e")
-            else:
-                button_characteristic.write(b"!")  # Default state
-        except Exception as e:
-            print(f"Error reading joysticks: {e}")
-        await asyncio.sleep(0.1)
 
-# --- Peripheral Task ---
-async def peripheral_task():
-    """ Manage BLE connections """
-    global connected, connection
-    while True:
-        connected = False
-        async with await aioble.advertise(
-            250_000,
-            name="RoboticArmRemote",
-            appearance=_BLE_APPEARANCE_GENERIC_REMOTE_CONTROL,
-            services=[_GENERIC],
-        ) as connection:
-            print(f"Connected to: {connection.device}")
-            connected = True
-            await connection.disconnected()
-            print("Disconnected")
+        try:
+            # Read & map exactly like before...
+            chassis_fb     = read_ads7830(1)
+            chassis_strafe = read_ads7830(0)
+            chassis_turn   = read_ads7830(2)
+            arm_fb         = read_ads7830(5)
+            claw           = read_ads7830(4)
+            arm_ud         = read_ads7830(7)
+
+            # Decide which single-byte command to send
+            cmd = None
+            if chassis_fb >  UPPER:
+                print("Joystick 1 → Chassis Forward")
+                cmd = b"f"
+            elif chassis_fb <  LOWER:
+                print("Joystick 1 → Chassis Backward")
+                cmd = b"b"
+
+            if chassis_strafe >  UPPER:
+                print("Joystick 1 → Chassis Strafe Right")
+                cmd = b"r"
+            elif chassis_strafe <  LOWER:
+                print("Joystick 1 → Chassis Strafe Left")
+                cmd = b"l"
+
+            if chassis_turn >  UPPER:
+                print("Joystick 2 → Chassis Turning Left")
+                cmd = b"p"
+            elif chassis_turn <  LOWER:
+                print("Joystick 2 → Chassis Turning Right")
+                cmd = b"q"
+
+            if arm_fb >  UPPER:
+                print("Joystick 3 → Arm Backward")
+                cmd = b"c"
+            elif arm_fb <  LOWER:
+                print("Joystick 3 → Arm Forward")
+                cmd = b"a"
+
+            if claw >  UPPER:
+                print("Joystick 3 → Claw Open")
+                cmd = b"y"
+            elif claw <  LOWER:
+                print("Joystick 3 → Claw Closed")
+                cmd = b"z"
+
+            if arm_ud >  UPPER:
+                print("Joystick 4 → Arm Down")
+                cmd = b"e"
+            elif arm_ud <  LOWER:
+                print("Joystick 4 → Arm Up")
+                cmd = b"d"
+
+            # If we got a new command and it's different, send it
+            if cmd is not None and cmd != _last_button:
+                remote_service.button = cmd
+                _last_button = cmd
+
+        except Exception as e:
+            print("Error in remote_task:", e)
+
+        await asyncio.sleep(0.1)
 
 # --- LED Blink Task ---
 async def blink_task():
-    """ Blink LED to show connection status """
     toggle = True
     while True:
-        led.value(toggle)
+        led.value = toggle
         toggle = not toggle
-        await asyncio.sleep_ms(250 if not connected else 1000)
+        await asyncio.sleep(1.0 if connected else 0.25)
 
-# --- Main Function ---
+# --- Main Entry Point ---
 async def main():
-    tasks = [
-        asyncio.create_task(peripheral_task()),
-        asyncio.create_task(remote_task()),
-        asyncio.create_task(blink_task()),
-    ]
-    try:
-        # Run all tasks concurrently
-        await asyncio.gather(*tasks)
-    finally:
-        # Ensure proper cleanup
-        print("Cleaning up tasks...")
-        for task in tasks:
-            task.cancel()  # Cancel all tasks
-        await asyncio.gather(*tasks, return_exceptions=True)  # Wait for tasks to cancel
-        print("All tasks cleaned up.")
+    await asyncio.gather(
+        peripheral_task(),
+        remote_task(),
+        blink_task(),
+    )
 
-# --- Entry Point ---
-try:
-    asyncio.run(main())
-except KeyboardInterrupt:
-    print("Exiting...")
-finally:
-    print("Exiting program. Cleaning up resources if necessary.")
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Exiting…")
+    finally:
+        print("Cleaning up…")
+

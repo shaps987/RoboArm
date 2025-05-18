@@ -1,64 +1,70 @@
-from usmbus import SMBus
-import time
+async def remote_task():
+    global connected, _last_button
+    while True:
+        if not connected:
+            print("Not Connected")
+            await asyncio.sleep(1)
+            continue
 
-# Initialize I2C bus (bus 0 on Pico)
-bus = SMBus(0)
-# ADS7830 command bytes for channels 0 to 7 (do not change these)
-ads7830_commands = (0x84, 0xc4, 0x94, 0xd4, 0xa4, 0xe4, 0xb4, 0xf4)
+        try:
+            # Read & map exactly like before...
+            chassis_fb     = read_ads7830(1)
+            chassis_strafe = read_ads7830(0)
+            chassis_turn   = read_ads7830(2)
+            arm_fb         = read_ads7830(5)
+            claw           = read_ads7830(4)
+            arm_ud         = read_ads7830(7)
 
-def read_ads7830(channel):
-    """
-    Read ADC input using ADS7830.
-    Note: Using address 0x48 based on your scan results.
-    """
-    bus.write_byte(0x48, ads7830_commands[channel])
-    # A small delay might be needed between write and read
-    time.sleep_us(200)
-    return bus.read_byte(0x48)
+            # Decide which single-byte command to send
+            cmd = None
+            if chassis_fb >  UPPER:
+                print("Joystick 1 → Chassis Forward")
+                cmd = b"f"
+            elif chassis_fb <  LOWER:
+                print("Joystick 1 → Chassis Backward")
+                cmd = b"b"
 
-while True:
-    # Joystick 1: Chassis forward/backward on channel 6
-    j1_v = read_ads7830(7)
-    if j1_v < 110:
-        print("Joystick 1: Chassis Forward")
-    elif j1_v > 140:
-        print("Joystick 1: Chassis Backward")
-    
-    # Joystick 1: Strafe left/right on channel 7
-    j1_h = read_ads7830(6)
-    if j1_h < 110:
-       print("Joystick 1: Strafe Right")
-    elif j1_h > 140:
-       print("Joystick 1: Strafe Left")
-    
-    # Joystick 2: Chassis turning on channel 5
-    j2 = read_ads7830(4)
-    if j2 < 110:
-        print("Joystick 2: Chassis Turning Right")
-    elif j2 > 140:
-        print("Joystick 2: Chassis Turning Left")
-    
-    # Joystick 3: Arm forward/backward on channel 2
-    j3_v = read_ads7830(3)
-    if j3_v < 110:
-        print("Joystick 3: Arm Forward")
-    elif j3_v > 140:
-        print("Joystick 3: Arm Backward")
-    
-    # Joystick 3: Claw open/closed on channel 3
-    j3_h = read_ads7830(2)
-    if j3_h > 140:
-        print("Joystick 3: Claw Open")
-    elif 110 < j3_h < 140:
-        print("Joystick 3: Claw Closed")
-    
-    # Joystick 4: Arm up/down on channel 0
-    j4 = read_ads7830(0)
-    if j4 > 140:
-        print("Joystick 4: Arm Up")
-    elif j4 < 110:
-        print("Joystick 4: Arm Down")
-    
-    print("-----------------------------")
-    time.sleep(0.5)
+            if chassis_strafe >  UPPER:
+                print("Joystick 1 → Chassis Strafe Right")
+                cmd = b"r"
+            elif chassis_strafe <  LOWER:
+                print("Joystick 1 → Chassis Strafe Left")
+                cmd = b"l"
 
+            if chassis_turn >  UPPER:
+                print("Joystick 2 → Chassis Turning Left")
+                cmd = b"p"
+            elif chassis_turn <  LOWER:
+                print("Joystick 2 → Chassis Turning Right")
+                cmd = b"q"
+
+            if arm_fb >  UPPER:
+                print("Joystick 3 → Arm Backward")
+                cmd = b"c"
+            elif arm_fb <  LOWER:
+                print("Joystick 3 → Arm Forward")
+                cmd = b"a"
+
+            if claw >  UPPER:
+                print("Joystick 3 → Claw Open")
+                cmd = b"y"
+            elif claw <  LOWER:
+                print("Joystick 3 → Claw Closed")
+                cmd = b"z"
+
+            if arm_ud >  UPPER:
+                print("Joystick 4 → Arm Down")
+                cmd = b"e"
+            elif arm_ud <  LOWER:
+                print("Joystick 4 → Arm Up")
+                cmd = b"d"
+
+            # If we got a new command and it's different, send it
+            if cmd is not None and cmd != _last_button:
+                remote_service.button = cmd
+                _last_button = cmd
+
+        except Exception as e:
+            print("Error in remote_task:", e)
+
+        await asyncio.sleep(0.1)
