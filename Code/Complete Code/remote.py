@@ -1,15 +1,18 @@
-import board
-import digitalio
-import busio
-import microcontroller
-import asyncio
+# --- Imports --- #
+import board, busio, digitalio, time
+from circuitpython_nrf24l01.rf24 import RF24
 
-# --- BLE Imports from Adafruit Libraries ---
-from adafruit_ble import BLERadio, Service
-from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
-from adafruit_ble.characteristics import Characteristic
-from adafruit_ble.uuid import StandardUUID
-from adafruit_ble.services.standard.device_info import DeviceInfoService
+# --- Initialize SPI and TX Pipe --- #
+spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
+ce = digitalio.DigitalInOut(board.D1)
+csn = digitalio.DigitalInOut(board.D0)
+radio = RF24(spi, csn, ce)
+radio.channel      = 100      # 0–125
+radio.payload_size = 1        # one-byte packets
+print("TX: channel =", radio.channel, "addr =", b"\xe1\xf0\xf0\xf0\xf0", 
+      "payload_size =", radio.payload_size)
+radio.open_tx_pipe(b'\xe1\xf0\xf0\xf0\xf0')
+radio.listen = False
 
 # I²C address discovered by scan
 ADS7830_ADDR = 0x48
@@ -33,161 +36,45 @@ def read_ads7830(channel):
     finally:
         i2c.unlock()
 
-def uid():
-    """Return the unique id of the device as a string."""
-    return "".join("{:02x}".format(x) for x in microcontroller.cpu.uid)
-
-# --- BLE Constants ---
-_BLE_APPEARANCE_GENERIC_REMOTE_CONTROL = 384
-
-# --- Define a Custom BLE Service ---
-class RemoteService(Service):
-    # 16-bit service UUID is fine here
-    uuid = StandardUUID(0x1848)
-
-    # use StandardUUID for the char, and override to 1 byte
-    button = Characteristic(
-        uuid=StandardUUID(0x2A6E),                     # spec-assigned 16-bit
-        properties=Characteristic.READ | Characteristic.NOTIFY,
-        max_length=1                                    # allow exactly one byte
-    )
-
-remote_service = RemoteService()
-device_info = DeviceInfoService(
-    manufacturer="RoboticArmRemote",
-    model_number="1.0",
-    serial_number=uid(),
-    hardware_revision="1.0",
-    firmware_revision="1.0",
-)
-
-# --- Hardware LED Setup ---
-led = digitalio.DigitalInOut(board.LED)
-led.direction = digitalio.Direction.OUTPUT
-
-# Global BLE state
-ble = BLERadio()
-connected = False
-
-# --- BLE Peripheral Task ---
-async def peripheral_task():
-    global connected
-    advertisement = ProvideServicesAdvertisement(remote_service, device_info)
-    advertisement.appearance = _BLE_APPEARANCE_GENERIC_REMOTE_CONTROL
-    advertisement.complete_name = "RoboticArmRemote"
-    ble.start_advertising(advertisement)
-    while True:
-        if ble.connected:
-            conn = ble.connections[0]
-            connected = True
-            print("Connected to:", conn)
-            while ble.connected:
-                await asyncio.sleep(0.1)
-            connected = False
-            print("Disconnected")
-            ble.start_advertising(advertisement)
-        await asyncio.sleep(0.1)
-
 # Dead-zone thresholds
 CENTER   = 128
 DEADZONE = 20
 UPPER    = CENTER + DEADZONE
 LOWER    = CENTER - DEADZONE
-_last_button = None
 
-# --- Remote Task ---
-async def remote_task():
-    global connected, _last_button
-    while True:
-        if not connected:
-            print("Not Connected")
-            await asyncio.sleep(1)
-            continue
+last_cmd = None
+while True:
+    # read all four axes:
+    fb     = read_ads7830(1)
+    strafe = read_ads7830(0)
+    turn   = read_ads7830(2)
+    arm_fb = read_ads7830(5)
+    claw   = read_ads7830(4)
+    arm_ud = read_ads7830(7)
 
-        try:
-            # Read & map exactly like before...
-            chassis_fb     = read_ads7830(1)
-            chassis_strafe = read_ads7830(0)
-            chassis_turn   = read_ads7830(2)
-            arm_fb         = read_ads7830(5)
-            claw           = read_ads7830(4)
-            arm_ud         = read_ads7830(7)
+    # decide on one-byte cmd:
+    cmd = None
+    if   fb     > 128+DEADZONE: cmd = b"b"
+    elif fb     < 128-DEADZONE: cmd = b"f"
+    if   strafe > 128+DEADZONE: cmd = b"l"
+    elif strafe < 128-DEADZONE: cmd = b"r"
+    if   turn   > 128+DEADZONE: cmd = b"p"
+    elif turn   < 128-DEADZONE: cmd = b"q"
+    if   arm_fb > 128+DEADZONE: cmd = b"c"
+    elif arm_fb < 128-DEADZONE: cmd = b"a"
+    if   claw   > 128+DEADZONE: cmd = b"y"
+    elif claw   < 128-DEADZONE: cmd = b"z"
+    if   arm_ud > 128+DEADZONE: cmd = b"e"
+    elif arm_ud < 128-DEADZONE: cmd = b"d"
 
-            # Decide which single-byte command to send
-            cmd = None
-            if chassis_fb >  UPPER:
-                print("Joystick 1 → Chassis Forward")
-                cmd = b"f"
-            elif chassis_fb <  LOWER:
-                print("Joystick 1 → Chassis Backward")
-                cmd = b"b"
+    # if stick is centered now but wasn’t before, send “stop”
+    if cmd is None and last_cmd is not None:
+       cmd = b"s"
 
-            if chassis_strafe >  UPPER:
-                print("Joystick 1 → Chassis Strafe Right")
-                cmd = b"r"
-            elif chassis_strafe <  LOWER:
-                print("Joystick 1 → Chassis Strafe Left")
-                cmd = b"l"
+    # only send when the stick moves out of the dead-zone
+    if cmd is not None and cmd != last_cmd:
+        radio.send(cmd)
+        print("TX →", cmd)
+        last_cmd = cmd
 
-            if chassis_turn >  UPPER:
-                print("Joystick 2 → Chassis Turning Left")
-                cmd = b"p"
-            elif chassis_turn <  LOWER:
-                print("Joystick 2 → Chassis Turning Right")
-                cmd = b"q"
-
-            if arm_fb >  UPPER:
-                print("Joystick 3 → Arm Backward")
-                cmd = b"c"
-            elif arm_fb <  LOWER:
-                print("Joystick 3 → Arm Forward")
-                cmd = b"a"
-
-            if claw >  UPPER:
-                print("Joystick 3 → Claw Open")
-                cmd = b"y"
-            elif claw <  LOWER:
-                print("Joystick 3 → Claw Closed")
-                cmd = b"z"
-
-            if arm_ud >  UPPER:
-                print("Joystick 4 → Arm Down")
-                cmd = b"e"
-            elif arm_ud <  LOWER:
-                print("Joystick 4 → Arm Up")
-                cmd = b"d"
-
-            # If we got a new command and it's different, send it
-            if cmd is not None and cmd != _last_button:
-                remote_service.button = cmd
-                _last_button = cmd
-
-        except Exception as e:
-            print("Error in remote_task:", e)
-
-        await asyncio.sleep(0.1)
-
-# --- LED Blink Task ---
-async def blink_task():
-    toggle = True
-    while True:
-        led.value = toggle
-        toggle = not toggle
-        await asyncio.sleep(1.0 if connected else 0.25)
-
-# --- Main Entry Point ---
-async def main():
-    await asyncio.gather(
-        peripheral_task(),
-        remote_task(),
-        blink_task(),
-    )
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("Exiting…")
-    finally:
-        print("Cleaning up…")
-
+    time.sleep(0.1)
