@@ -149,9 +149,6 @@ def compute_servo_angles(l1, l2, l3, x, y):
             - joint_angles: A tuple of (angle1, angle2, angle3) in degrees.
             - servo_angles: A tuple of (servo_angle1, servo_angle2, servo_angle3) in the range [0, 180].
     """
-    def map_to_servo_range(angle):
-        # Map the angle (in degrees) to the servo range [0, 180]
-        return max(0, min(angle + 90, 180))
 
     # Adjust the target to account for the horizontal third segment
     x_adj = x - l3  # Adjust for the third segment
@@ -193,9 +190,9 @@ def compute_servo_angles(l1, l2, l3, x, y):
     angle3_deg = math.degrees(angle3)
 
     # Map the angles to the servo range [0, 180]
-    servo_angle1 = map_to_servo_range(angle1_deg)
-    servo_angle2 = map_to_servo_range(angle1_deg + angle2_deg)  # Relative adjustment for servo 2
-    servo_angle3 = map_to_servo_range(0)  # Third segment always horizontal
+    servo_angle1 = 90-angle1_deg
+    servo_angle2 = angle2_deg+90  # Relative adjustment for servo 2
+    servo_angle3 = -(angle3_deg)  # Horizontal correction
 
     # joint_angles = (angle1_deg, angle2_deg, angle3_deg)
     servo_angles = (servo_angle1, servo_angle2, servo_angle3)

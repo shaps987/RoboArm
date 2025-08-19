@@ -20,31 +20,31 @@
 
 ### Buck Converter #1 (5V for Logic Circuits)
 
-- **Amperage Usage**: Draws ~5.6A at 5V.
+- **Amperage Usage**: Draws ~5.4A at 5V.
   - **Breakdown**:
     - **L298N Logic**: ~0.1A (50mA × 2 motor drivers).
-    - **Raspberry Pi Zero**: ~0.4A.
+    - **Raspberry Pi Pico**: ~0.2A.
     - **PCA9685 Servo Controller (Logic)**: ~0.3A.
     - **Servos (MG996R)**: ~4.8A (1.2A × 4 servos).
     - **Momentary LED Push Button**: ~20mA when lit.
-- **Purpose**: Steps down 12V to 5V for powering the Raspberry Pi Zero, PCA9685, and L298N logic circuits.
+- **Purpose**: Steps down 12V to 5V for powering the Raspberry Pi +, PCA9685, and L298N logic circuits.
 - **Connections**:
   - **Input**:
     - **Positive (+)**: Connect to the + terminal of the 12V battery via the split positive wire.
     - **Negative (-)**: Connect to the negative terminal of the 12V battery via the split negative wire.
     - Use 14 AWG wires for input.
   - **Output (5V)**:
-    - Pass through a **5A slow-blow fuse** (chosen because the total current draw of the Raspberry Pi Zero, PCA9685, and L298N logic inputs is ~3.7A at 5V, with additional headroom for safety).
+    - Pass through a **5A slow-blow fuse** (chosen because the total current draw of the Raspberry Pi Pico, PCA9685, and L298N logic inputs is ~3.7A at 5V, with additional headroom for safety).
     - Use 14 AWG ~10 foot long cables to bring power to the moving robot from the buck converter.
       - Connect to a power distribution block:
         - **Positive (+)**:
           - The 5V logic input of both L298Ns.
-          - The 5V input of the Raspberry Pi Zero.
+          - The 5V input of the Raspberry Pi Pico.
           - The 5V input of the PCA9685 servo controller.
           - Use 18 AWG wires for these connections.
         - **Negative (-)**:
           - The GND terminal on both L298Ns.
-          - The GND wire for the Raspberry Pi Zero's power.
+          - The GND wire for the Raspberry Pi Pico's power.
           - The GND terminal on the PCA9685 servo controller.
           - Use 18 AWG wires for these connections.
 
@@ -122,9 +122,8 @@
 
 ---
 
-### Raspberry Pi Zero
+### Raspberry Pi Pico
 
-- **Amperage Usage**: Draws ~0.4A at 5V.
 - **Purpose**: Controls the robotic arm's servos and motor drivers (L298Ns).
 - **Connections**:
   - **5V Power Input**:
@@ -180,11 +179,11 @@
 ### Final Checklist
 
 1. **12V Battery** powers both buck converters:
-   - Buck Converter #1 (5V): Supplies the Raspberry Pi Zero, PCA9685, and L298N logic inputs.
+   - Buck Converter #1 (5V): Supplies the Raspberry Pi Pico, PCA9685, and L298N logic inputs.
    - Buck Converter #2 (7V): Supplies the VIN inputs (motor power) on both L298Ns.
 2. **Fuses**:
    - **10A Slow-Blow Fuse**: Protects the entire circuit, chosen because the combined input current for both buck converters is ~7A.
-   - **5A Slow-Blow Fuse** (Logic Circuit): Protects the Raspberry Pi Zero, PCA9685, and L298N logic inputs.
+   - **5A Slow-Blow Fuse** (Logic Circuit): Protects the Raspberry Pi Pico, PCA9685, and L298N logic inputs.
    - **5A Slow-Blow Fuses** (Motor Drivers): One fuse per L298N motor driver, chosen because each driver can handle up to ~4A continuously with peaks up to 5A during stalls or startups.
 3. **Switch**:
    - Use an 18 AWG wire to connect the positive terminal of the battery to the switch and the switch to the fuse.
