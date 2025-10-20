@@ -3,21 +3,21 @@
 ## Overview
 This project involves building a versatile and remotely controlled robotic arm, leveraging the power and flexibility of Raspberry Pi microcontrollers. The robotic arm is designed for precise movement and versatility, controlled remotely via a custom-built controller featuring multiple joysticks. The remote communicates with the robotic arm over Bluetooth Low Energy (BLE) for real-time command execution.
 
-The **remote control** is powered by a Raspberry Pi Pico WH and includes an analog-to-digital converter to process joystick inputs. These joysticks allow intuitive control of the robotic arm's movements, including its base, joints, and claw.
+The **remote control** is powered by a NRF52840 Sense and includes an analog-to-digital converter to process joystick inputs. These joysticks allow intuitive control of the robotic arm's movements, including its base, joints, and claw.
 
-The **robotic arm** itself is powered by a Raspberry Pi Zero WH, which coordinates the movements of servos and motors to execute commands received from the remote. With **inverse kinematics**, the robotic arm achieves smooth and accurate movement for tasks requiring precision. The arm is mounted on a mecanum wheel chassis, enabling it to move in all directions and navigate complex environments.
+The **robotic arm** itself is powered by a Raspberry Pi Pico WH, which coordinates the movements of servos and motors to execute commands received from the remote. With **inverse kinematics**, the robotic arm achieves smooth and accurate movement for tasks requiring precision. The arm is mounted on a mecanum wheel chassis, enabling it to move in all directions and navigate complex environments.
 
 ---
 
 ## Components
 
 ### Remote Control
-- **Raspberry Pi Pico WH**: Used as the main controller for the remote.
+- **NRF52840**: Used as the main controller for the remote.
 - **Analog to Digital Converter (Adafruit ADS7830)**: Converts the analog signals from the joysticks to digital signals.
 - **4 Joysticks**: Used to control the movement of the robotic arm.
 
 ### Robotic Arm
-- **Raspberry Pi Zero WH**: Used as the main controller for the robotic arm.
+- **Raspberry Pi Pico WH**: Used as the main controller for the robotic arm.
 - **4 Servos (MG996R)**:
   - 3 for the joints of the arm.
   - 1 for the claw's grippers.
@@ -45,7 +45,7 @@ The **robotic arm** itself is powered by a Raspberry Pi Zero WH, which coordinat
   - The positive terminal is connected to a **10A slow-blow fuse**, chosen because the combined input current for the buck converters is ~7A, allowing for surges.
   - Powers two buck converters:
     - **Buck Converter #1 (5V)**:
-      - Supplies the Raspberry Pi Zero, PCA9685, and logic inputs of both L298Ns.
+      - Supplies the Raspberry Pi Pico, PCA9685, and logic inputs of both L298Ns.
       - Protected by a **5A slow-blow fuse**, chosen because the total current draw of these components is ~3.7A, with additional headroom for safety.
     - **Buck Converter #2 (7V)**:
       - Supplies the VIN inputs of both L298Ns for motor power.
@@ -89,12 +89,12 @@ Here are the product links with their prices (prices may change):
 
 ### 3. **Assemble the Robotic Arm**
    - Connect the servos to the servo controller.
-   - Connect the motor controllers to the mecanum wheel motors.
-   - Connect the servo controller and motor controllers to the Raspberry Pi Zero.
+   - Connect the L298Ns (the motor controllers) to the motors.
+   - Connect the servo controller and motor controllers to the Raspberry Pi Pico.
    - Wire the **12V battery** as follows:
      - Connect the positive terminal to a **10A slow-blow fuse** then to a **rocker switch** and then split to two buck converters.
      - **Buck Converter #1 (5V)**:
-       - Connect the positive output to the Raspberry Pi Zero, PCA9685, and logic inputs of both L298Ns.
+       - Connect the positive output to the Raspberry Pi Pico, PCA9685, and logic inputs of both L298Ns.
        - Use a **5A slow-blow fuse** after the buck converter.
      - **Buck Converter #2 (7V)**:
        - Split the positive output into two separate wires, each passing through a **5A circuit breaker** before connecting to the VIN inputs of each L298N motor driver.

@@ -27,7 +27,7 @@
     - **PCA9685 Servo Controller (Logic)**: ~0.3A.
     - **Servos (MG996R)**: ~4.8A (1.2A × 4 servos).
     - **Momentary LED Push Button**: ~20mA when lit.
-- **Purpose**: Steps down 12V to 5V for powering the Raspberry Pi +, PCA9685, and L298N logic circuits.
+- **Purpose**: Steps down 12V to 5V for powering the Raspberry Pi Pico, PCA9685, and L298N logic circuits.
 - **Connections**:
   - **Input**:
     - **Positive (+)**: Connect to the + terminal of the 12V battery via the split positive wire.
@@ -175,6 +175,31 @@
   - Use 18 AWG wires for motor connections.
 
 ---
+
+### Wiring Chart
+Motor Driver 1:
+  - ENA: Pin 32, GPIO12
+  - IN1: Pin 29, GPIO5
+  - IN2: Pin 31, GPIO6
+  - ENB: Pin 33, GPIO13
+  - IN3: Pin 35, GPIO19
+  - IN4: Pin 37, GPIO26
+
+Motor Driver 2:
+  - ENA: Pin 12, GPIO18
+  - IN1: Pin 16, GPIO23
+  - IN2: Pin 18, GPIO24
+  - ENB: Pin 22, GPIO25
+  - IN3: Pin 13, GPIO27
+  - IN4: Pin 15, GPIO22
+
+PCA9685:
+  - SDA: Pin 3, GPIO2
+  - SCL: Pin 5, GPIO3
+  - VCC: 3.3v pin on Raspberry Pi Pico
+  - GND: Ground pin on Raspberry Pi PIco
+  - V+ (on the PCA9685 terminal block): 5V distribution block
+  - GND (on the PCA9685 terminal block): 5V distribution block
 
 ### Final Checklist
 
