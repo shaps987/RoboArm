@@ -176,7 +176,14 @@
 
 ---
 
-### Wiring Chart
+### Wiring Chart - THE FOLLOWING PINS ARE OUTDATED (THEY ARE FOR THE RPI ZERO VERSION, NOT THE PICO VERSION)
+Voltage Distribution Unit:
+  - Positive Terminal of Battery: To 10A Fuse
+  - Negative Terminal of Battery: Splits and goes to the 2 buck converters
+  - 10A Fuse: To switch
+  - Switch: splits and goes to the 2 buck converters
+  - 7V Buck Converter Positive Output: To robot, then splits into two wires. Each wire has a 5A fuse on it. And then each fuse goes into the 12V pin on its respective L298N
+  - 7V Buck Converter Negative Output: To robot, then splits into two wires. Then each wire goes into the 12V pin on its respective L298N
 Motor Driver 1:
   - ENA: Pin 32, GPIO12
   - IN1: Pin 29, GPIO5
@@ -200,6 +207,24 @@ PCA9685:
   - GND: Ground pin on Raspberry Pi PIco
   - V+ (on the PCA9685 terminal block): 5V distribution block
   - GND (on the PCA9685 terminal block): 5V distribution block
+
+NRF24L01:
+  - VCC: Pin 36
+  - GND: Pin 38
+  - CE: Pin 19, GPIO 14
+  - CSN: Pin 20, GPIO 15
+  - SCK: Pin 24, GPIO 18
+  - MOSI: Pin 25, GPIO 19
+  - MISO: Pin 21, GPIO 16
+  - IRQ: Not used
+
+5V Distribution Block:
+  - +/- Input: 5V Buck Converter +/- Output
+  - +/- Outputs:
+    - To Raspberry Pi Pico via a Pigtail to Micro-USB cable
+    - To L298N #1 5V Logic Input and GND terminals
+    - To L298N #2 5V Logic Input and GND terminals
+    - To PCA9685 +/- V+ terminal block
 
 ### Final Checklist
 

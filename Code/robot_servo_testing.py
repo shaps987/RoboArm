@@ -1,5 +1,3 @@
-#This code is outdated as of 10/21/25 at ~6:30 PM
-
 # --- Import Required Libraries ---
 import math as math
 from adafruit_pca9685 import PCA9685
@@ -198,159 +196,25 @@ def compute_servo_angles(l1, l2, l3, x, y):
 
     return servo_angles
 
-
-# --- Motor Controller Setup ---
-# --- L298N #1 (Controls 2 motors) ---
-in1_1 = DigitalInOut(board.GP2)
-in1_1.direction = Direction.OUTPUT
-
-in2_1 = DigitalInOut(board.GP3)
-in2_1.direction = Direction.OUTPUT
-
-in3_1 = DigitalInOut(board.GP4)
-in3_1.direction = Direction.OUTPUT
-
-in4_1 = DigitalInOut(board.GP5)
-in4_1.direction = Direction.OUTPUT
-
-ena_1 = pwmio.PWMOut(board.GP6, frequency=100)
-ena_1.duty_cycle = int(0.75 * 65535)   # 75% power
-
-enb_1 = pwmio.PWMOut(board.GP7, frequency=100)
-enb_1.duty_cycle = int(0.75 * 65535)   # 75% power
+# --- Set all Arm Servos to 0 Degrees
+move_servo(0, 90)
+move_servo(1, 90)
+move_servo(2, 90)
 
 
-# --- L298N #2 (Controls 2 motors) ---
-in1_2 = DigitalInOut(board.GP8)
-in1_2.direction = Direction.OUTPUT
 
-in2_2 = DigitalInOut(board.GP9)
-in2_2.direction = Direction.OUTPUT
-
-in3_2 = DigitalInOut(board.GP10)
-in3_2.direction = Direction.OUTPUT
-
-in4_2 = DigitalInOut(board.GP11)
-in4_2.direction = Direction.OUTPUT
-
-ena_2 = pwmio.PWMOut(board.GP12, frequency=100)
-ena_2.duty_cycle = int(0.75 * 65535)   # 75% power
-
-enb_2 = pwmio.PWMOut(board.GP13, frequency=100)
-enb_2.duty_cycle = int(0.75 * 65535)   # 75% power
-
-# --- Robot Movement Function ---
-def move_robot(cmd: bytes):
-    """ Execute robot movement based on the received command """
-    print(f"Processing command: {cmd!r}")
-    try:
-        # --- Chassis (rear = bridge #1, front = bridge #2) ---
-        if cmd == b'f':           # forward
-            in1_1.value, in2_1.value, in3_1.value, in4_1.value = False, True, True, False
-            in1_2.value, in2_2.value, in3_2.value, in4_2.value = False, True, True, False
-
-        elif cmd == b'b':         # backward
-            in1_1.value, in2_1.value, in3_1.value, in4_1.value = True, False, False, True
-            in1_2.value, in2_2.value, in3_2.value, in4_2.value = True, False, False, True
-
-        elif cmd == b'r':         # strafe right
-            # RR ▶ forward, RL ▶ backward, FR ▶ backward, FL ▶ forward
-            in1_1.value, in2_1.value = True, False
-            in3_1.value, in4_1.value = True, False
-            in1_2.value, in2_2.value = True, False
-            in3_2.value, in4_2.value = True, False
-
-        elif cmd == b'l':         # strafe left
-            # RR ▶ backward, RL ▶ forward, FR ▶ forward,  FL ▶ backward
-            in1_1.value, in2_1.value = False, True
-            in3_1.value, in4_1.value = False, True
-            in1_2.value, in2_2.value = False, True
-            in3_2.value, in4_2.value = False, True
-
-        elif cmd == b'q':  # turn right (in place)
-            in1_1.value, in2_1.value, in3_1.value, in4_1.value = True, False, False, True
-            in1_2.value, in2_2.value, in3_2.value, in4_2.value = False, True, True, False
-
-        elif cmd == b'p':  # turn left (in place)
-            in1_1.value, in2_1.value, in3_1.value, in4_1.value = False, True, True, False
-            in1_2.value, in2_2.value, in3_2.value, in4_2.value = True, False, False, True
-
-        elif cmd == b"s":   # STOP
-            in1_1.value = in2_1.value = in3_1.value = in4_1.value = False
-            in1_2.value = in2_2.value = in3_2.value = in4_2.value = False
-
-        # --- Arm & Claw (same as before) ---
-        elif cmd == b'a':  # Arm Forward
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles   = compute_servo_angles(L1, L2, L3, claw_pos[0] + 1, claw_pos[1])
-            if angles:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        elif cmd == b'c':  # Arm Backward
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles   = compute_servo_angles(L1, L2, L3, claw_pos[0] - 1, claw_pos[1])
-            if angles:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        elif cmd == b'y':  # Claw Open
-            move_servo(3, 45)
-
-        elif cmd == b'z':  # Claw Closed
-            move_servo(3, 0)
-
-        elif cmd == b'a':  # Arm Forward
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles = compute_servo_angles(L1, L2, L3, claw_pos[0] + 1, claw_pos[1])
-            if angles is not None:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        elif cmd == b'c':  # Arm Backward
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles = compute_servo_angles(L1, L2, L3, claw_pos[0] - 1, claw_pos[1])
-            if angles is not None:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        elif cmd == b'y':  # Claw Open
-            move_servo(3, 45)  # Adjust angle as needed
-
-        elif cmd == b'z':  # Claw Closed
-            move_servo(3, 0)  # Adjust angle as needed
-
-        elif cmd == b'd':  # Arm Up
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] + 1)
-            if angles is not None:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        elif cmd == b'e':  # Arm Down
-            claw_pos = calculate_claw_position(L1, L2, L3)
-            angles = compute_servo_angles(L1, L2, L3, claw_pos[0], claw_pos[1] - 1)
-            if angles is not None:
-                move_servo(0, angles[0])
-                move_servo(1, angles[1])
-                move_servo(2, angles[2])
-
-        else:
-            print("Unknown command:", cmd)
-
-    except Exception as e:
-        print("move_robot error:", e)
-
-
-# --- Main Loop (Radio Listening) ---
-while True:
-    if radio.available():
-        buf = radio.read(1)           # returns a bytearray of length 1
-        print("RX got →", buf)
-        move_robot(buf)               # pass it into move_robot
-    time.sleep(0.05)
+print("Moving Servo 0")
+time.sleep(1)
+move_servo(0,0)
+time.sleep(1)
+move_servo(0,180)
+print("Moving Servo 1")
+time.sleep(1)
+move_servo(1,0)
+time.sleep(1)
+move_servo(1,180)
+print("Moving Servo 2")
+time.sleep(1)
+move_servo(2,0)
+time.sleep(1)
+move_servo(2,180)
