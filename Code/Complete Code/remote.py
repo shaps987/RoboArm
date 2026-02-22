@@ -44,37 +44,48 @@ LOWER    = CENTER - DEADZONE
 
 last_cmd = None
 while True:
-    # read all four axes:
-    fb     = read_ads7830(1)
-    strafe = read_ads7830(0)
-    turn   = read_ads7830(2)
-    arm_fb = read_ads7830(5)
-    claw   = read_ads7830(4)
-    arm_ud = read_ads7830(7)
+    # Read all four axes
+    fb      = read_ads7830(1)
+    strafe  = read_ads7830(0)
+    turn    = read_ads7830(2)
+    arm_fb  = read_ads7830(5)
+    claw    = read_ads7830(4)
+    arm_ud  = read_ads7830(7)
 
-    # decide on one-byte cmd:
+    # Decide on one-byte cmd
     cmd = None
-    if   fb     > 128+DEADZONE: cmd = b"b"
-    elif fb     < 128-DEADZONE: cmd = b"f"
-    if   strafe > 128+DEADZONE: cmd = b"l"
-    elif strafe < 128-DEADZONE: cmd = b"r"
-    if   turn   > 128+DEADZONE: cmd = b"p"
-    elif turn   < 128-DEADZONE: cmd = b"q"
-    if   arm_fb > 128+DEADZONE: cmd = b"c"
-    elif arm_fb < 128-DEADZONE: cmd = b"a"
-    if   claw   > 128+DEADZONE: cmd = b"y"
-    elif claw   < 128-DEADZONE: cmd = b"z"
-    if   arm_ud > 128+DEADZONE: cmd = b"e"
-    elif arm_ud < 128-DEADZONE: cmd = b"d"
+    if   fb     > UPPER: cmd = b"b"
+    elif fb     < LOWER: cmd = b"f"
+    elif strafe > UPPER: cmd = b"l"
+    elif strafe < LOWER: cmd = b"r"
+    elif turn   > UPPER: cmd = b"p"
+    elif turn   < LOWER: cmd = b"q"
+    elif arm_fb > UPPER: cmd = b"c"
+    elif arm_fb < LOWER: cmd = b"a"
+    elif claw   > UPPER: cmd = b"y"
+    elif claw   < LOWER: cmd = b"z"
+    elif arm_ud > UPPER: cmd = b"e"
+    elif arm_ud < LOWER: cmd = b"d"
 
-    # if stick is centered now but wasn’t before, send “stop”
-    if cmd is None and last_cmd is not None:
-       cmd = b"s"
+    # LOGIC FIX: 
+    if cmd is not None:
+        # 1. If it's an arm/claw command (a, c, d, e, y, z), ALWAYS send it to keep moving
+        if cmd in [b"a", b"c", b"d", b"e", b"y", b"z"]:
+            radio.send(cmd)
+            print("TX (Streaming) →", cmd)
+        
+        # 2. For driving/turning, only send if it's a change (prevents jitter)
+        elif cmd != last_cmd:
+            radio.send(cmd)
+            print("TX (Chassis) →", cmd)
+            
+    # 3. If we just let go of the stick, send "stop" once
+    elif last_cmd is not None:
+        radio.send(b"s")
+        print("TX → STOP")
 
-    # only send when the stick moves out of the dead-zone
-    if cmd is not None and cmd != last_cmd:
-        radio.send(cmd)
-        print("TX →", cmd)
-        last_cmd = cmd
-
-    time.sleep(0.1)
+    last_cmd = cmd
+    
+    # Speed this up slightly for smoother arm movement
+    # 0.05 is usually the "sweet spot" for responsiveness
+    time.sleep(0.05)
