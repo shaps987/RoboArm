@@ -38,9 +38,9 @@ enb_1 = pwmio.PWMOut(board.GP7, frequency=100); enb_1.duty_cycle = 49151
 in1_2 = DigitalInOut(board.GP8); in1_2.direction = Direction.OUTPUT
 in2_2 = DigitalInOut(board.GP9); in2_2.direction = Direction.OUTPUT
 in3_2 = DigitalInOut(board.GP10); in3_2.direction = Direction.OUTPUT
-in4_2 = DigitalInOut(board.GP11); in4_2.direction = Direction.OUTPUT
+in4_2 = DigitalInOut(board.GP13); in4_2.direction = Direction.OUTPUT
 ena_2 = pwmio.PWMOut(board.GP12, frequency=100); ena_2.duty_cycle = 49151
-enb_2 = pwmio.PWMOut(board.GP13, frequency=100); enb_2.duty_cycle = 49151
+enb_2 = pwmio.PWMOut(board.GP11, frequency=100); enb_2.duty_cycle = 49151
 
 all_motors = [in1_1, in2_1, in3_1, in4_1, in1_2, in2_2, in3_2, in4_2]
 
