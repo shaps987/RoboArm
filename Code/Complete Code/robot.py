@@ -1,3 +1,4 @@
+# --- 0. Imports ---
 import math
 import board
 import busio
@@ -52,7 +53,7 @@ def set_servo(channel, angle):
     duty_cycle = int((pulse_width / 1000000) * pca.frequency * 65536)
     pca.channels[channel].duty_cycle = duty_cycle
 
-def calculate_mirrored_ik(x, y):
+def calculate_ik(x, y):
     x_adj = x - l3
     y_adj = y
     r_adj = math.sqrt(x_adj**2 + y_adj**2)
@@ -105,11 +106,11 @@ def move_robot(cmd):
         in1_1.value, in2_1.value, in3_1.value, in4_1.value = False, True, True, False
         in1_2.value, in2_2.value, in3_2.value, in4_2.value = True, False, False, True
 
-    elif cmd == b"s":   # STOP
+    elif cmd == b"s":  # STOP
         in1_1.value = in2_1.value = in3_1.value = in4_1.value = False
         in1_2.value = in2_2.value = in3_2.value = in4_2.value = False
 
-    # --- Arm Movement (Mirrored IK) ---
+    # --- Arm Movement ---
     elif cmd in [b'a', b'c', b'd', b'e']:
         if cmd == b'a': current_x += step
         elif cmd == b'c': current_x -= step
@@ -120,13 +121,15 @@ def move_robot(cmd):
         current_x = max(2.0, min(11.5, current_x))
         current_y = max(1.0, min(11.0, current_y))
         
-        s1, s2, s3 = calculate_mirrored_ik(current_x, current_y)
+        s1, s2, s3 = calculate_ik(current_x, current_y)
         set_servo(12, s1)
         set_servo(13, s2)
         set_servo(14, s3)
 
-    elif cmd == b'y': set_servo(15, 45) # Claw Open
-    elif cmd == b'z': set_servo(15, 0)  # Claw Closed
+    elif cmd == b'y': 
+        set_servo(15, 45) # Claw Open
+    elif cmd == b'z': 
+        set_servo(15, 0)  # Claw Closed
 
 # --- 5. Main Loop ---
 print("System Ready.")
